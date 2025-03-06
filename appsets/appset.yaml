@@ -1,0 +1,49 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  ### Имя для appset
+  name: appset
+  ### Неймспейс — argocd, он уже есть
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/anrav8/infra.git
+        revision: HEAD
+        directories:
+          - path: charts/*
+  template:
+    metadata:
+      ### Берите одно поле, которое является названием чарта в папке **charts**
+      name: '{{ index .path.segments 1 }}'
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: ".;.."
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/anrav8/infra.git
+        targetRevision: HEAD
+        ### Путь, по которому лежат чарты
+        path: charts/{{ index .path.segments 1 }}
+        helm:
+          releaseName: '{{ index .path.segments 1 }}'
+          ### Файл переменной ищите внутри чарта с его названием
+          valueFiles:
+            - values.yaml
+      destination:
+        name: in-cluster
+        server: https://kubernetes.default.svc
+        ### Установите в неймспейсы с такими же именемами, как имя чарта
+        namespace: '{{ index .path.segments 1 }}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true

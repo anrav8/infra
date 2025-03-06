@@ -37,7 +37,6 @@ spec:
           valueFiles:
             - values.yaml
       destination:
-        name: in-cluster
         server: https://kubernetes.default.svc
         ### Установите в неймспейсы с такими же именемами, как имя чарта
         namespace: '{{ index .path.segments 1 }}'
